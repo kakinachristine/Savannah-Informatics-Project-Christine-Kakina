@@ -1,0 +1,11 @@
+Django>=4.2
+djangorestframework
+psycopg2-binary
+python-dotenv
+django-cors-headers
+mozilla-django-oidc
+africastalking
+pytest
+pytest-django
+coverage
+gunicorn
