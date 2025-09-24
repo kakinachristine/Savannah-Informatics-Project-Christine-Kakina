@@ -3,7 +3,6 @@ from django.core.validators import MinValueValidator
 from django.contrib.auth.models import User
 
 
-
 class Category(models.Model):
     name = models.CharField(max_length=255)
     parent = models.ForeignKey(
@@ -43,7 +42,6 @@ class Customer(models.Model):
         return self.name
 
 
-
 class Product(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True)
@@ -68,16 +66,14 @@ class Order(models.Model):
         return f"Order {self.id} - {self.customer} - {self.total}"
 
 
+
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name="items", on_delete=models.CASCADE)
-    product = models.ForeignKey(Product, on_delete=models.PROTECT)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1)
-    price = models.DecimalField(max_digits=12, decimal_places=2)
-
-    def save(self, *args, **kwargs):
-        if not self.price:
-            self.price = self.product.price
-        super().save(*args, **kwargs)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)  # ✅ Add this
 
     def __str__(self):
-        return f"{self.product.name} x{self.quantity} @ {self.price}"
+        return f"{self.product.name} x{self.quantity}"
+

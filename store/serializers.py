@@ -6,7 +6,7 @@ from .models import Customer, Category, Product, Order, OrderItem
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ["id", "name", "parent"]
+        fields = ["id", "name",]
 
 
 class ProductSerializer(serializers.ModelSerializer):
@@ -33,29 +33,51 @@ class OrderItemSerializer(serializers.ModelSerializer):
         fields = ["product", "quantity", "price"]
 
 
+class OrderItemInputSerializer(serializers.Serializer):
+    product = serializers.CharField()
+    quantity = serializers.IntegerField(min_value=1)
+
+
 class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True)
+    items = OrderItemInputSerializer(many=True)
 
     class Meta:
         model = Order
-        fields = ["id", "customer", "created_at", "total", "note", "items"]
-        read_only_fields = ["created_at", "total"]
+        fields = ["id", "customer", "total", "items"]
+        read_only_fields = ["id", "total"]
 
     def create(self, validated_data):
-        items_data = validated_data.pop("items")
-        order = Order.objects.create(**validated_data)
+        items_data = validated_data.pop("items", [])
+        order = Order.objects.create(total=0, **validated_data)
 
-        total = 0
-        for item_data in items_data:
-            product = item_data["product"]
-            qty = item_data.get("quantity", 1)
-            price = product.price
+        total_amount = 0
+        for item in items_data:
+            product_name = item["product"]
+            quantity = item.get("quantity", 1)
 
+            # Handle duplicates safely
+            products = Product.objects.filter(name__iexact=product_name)
+            if not products.exists():
+                raise serializers.ValidationError({"product": f"Product '{product_name}' not found."})
+            if products.count() > 1:
+                raise serializers.ValidationError({"product": f"Multiple products found with name '{product_name}'. Please use a unique identifier."})
+
+            product = products.first()
+
+            # Calculate line total
+            line_total = product.price * quantity
+            total_amount += line_total
+
+            # Save order item with subtotal
             OrderItem.objects.create(
-                order=order, product=product, quantity=qty, price=price
+                order=order,
+                product=product,
+                quantity=quantity,
+                price=product.price,
+                subtotal=line_total,
             )
-            total += price * qty
 
-        order.total = total
+        # Save grand total
+        order.total = total_amount
         order.save()
         return order
