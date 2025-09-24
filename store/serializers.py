@@ -55,7 +55,6 @@ class OrderSerializer(serializers.ModelSerializer):
             product_name = item["product"]
             quantity = item.get("quantity", 1)
 
-            # Handle duplicates safely
             products = Product.objects.filter(name__iexact=product_name)
             if not products.exists():
                 raise serializers.ValidationError({"product": f"Product '{product_name}' not found."})
@@ -64,7 +63,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
             product = products.first()
 
-            # Calculate line total
+            # Calculate total
             line_total = product.price * quantity
             total_amount += line_total
 

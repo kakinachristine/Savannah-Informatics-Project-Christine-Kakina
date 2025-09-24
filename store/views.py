@@ -35,12 +35,10 @@ class CustomerCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         phone = serializer.validated_data.get("phone")
 
-        # Check if phone already exists
         if Customer.objects.filter(phone=phone).exists():
             logger.warning("Attempt to create duplicate customer with phone: %s", phone)
             raise ValidationError({"phone": "A customer with this phone number already exists."})
 
-        # Save new customer
         customer = serializer.save()
         logger.info("New customer created: ID=%s, Name=%s, Phone=%s, Email=%s",
                     customer.id, customer.name, customer.phone, customer.email)
@@ -72,7 +70,6 @@ class ProductCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         name = serializer.validated_data.get("name")
 
-        # Check case-insensitive duplicates
         if Product.objects.filter(name__iexact=name).exists():
             raise ValidationError({"name": f"Product '{name}' already exists."})
 
@@ -126,7 +123,6 @@ class OrderCreateView(generics.CreateAPIView):
         if not items_data:
             raise ValidationError({"items": "You must provide at least one product."})
 
-        # Let the serializer handle item creation + totals
         order = serializer.save()
 
         logger.info("Order %s finalized. Total = %.2f", order.id, order.total)
